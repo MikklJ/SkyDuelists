@@ -5,6 +5,7 @@
 #include "Math/Rotator.h"
 #include "Math/Quat.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "DrawDebugHelpers.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
@@ -47,11 +48,12 @@ private:
 	FVector Thrust = FVector::ZeroVector;		// Thrust, forward of nose
 	FVector Drag = FVector::ZeroVector;			// Drag, acts against velocity
 	FVector Gravity = FVector::ZeroVector;		// Gravity, pulls down world -z
-	FVector Lift = FVector::ZeroVector;			// Lift, acts perpendicular to planar velocity
+	FVector PitchLift = FVector::ZeroVector;	// Lift, acts perpendicular to planar velocity
+	FVector YawLift = FVector::ZeroVector;
 
-	// Dynamic mechanics, in SI, local
-	FVector Velocity = FVector::ZeroVector;		// Velocity in m / s, local
-	FVector Acceleration = FVector::ZeroVector;	// Acceleration in m / s^2, local
+	// Dynamic mechanics, in SI, global
+	FVector Velocity = FVector::ZeroVector;		// Velocity in m / s, global
+	FVector Acceleration = FVector::ZeroVector;	// Acceleration in m / s^2, global
 
 	// Angle of Attack and Rotation
 	float AoAPitch = 0.0f;						// Current AoA of plane in xz plane
@@ -69,17 +71,20 @@ private:
 	float YawRateMultiplier = 30.0f;
 
 	float Mass = 5500.0f;						// Mass, in kg
-	float MaxThrust = 28000.0f;					// Maximum thrust in Newtons
-	float LiftScale = 150.0f;					// Coefficient lift strength
-	float IDragStrength = 0.2f;
+	float MaxThrust = 45000.0f;					// Maximum thrust in Newtons
+	float LiftScalePitch = 150.0f;				// Coefficient lift strength
+	float LiftScaleYaw = 60.0f;
+	float IDragPitchStrength = 0.2f;
+	float IDragYawStrength = 0.2f;
 
 	// Coefficients of Drag, 6-scaled
 	float CoefficentOfDragForward = 1.1f;
 	float CoefficentOfDragBackward = 1.1f;
-	float CoefficentOfDragLeft = 1.7f;
-	float CoefficentOfDragRight = 1.7f;
-	float CoefficentOfDragUp = 3.6f;
-	float CoefficentOfDragDown = 3.6f;
+	float CoefficentOfDragLeft = 8.7f;
+	float CoefficentOfDragRight = 8.7f;
+	float CoefficentOfDragUp = 15.6f;
+	float CoefficentOfDragDown = 15.6f;
+
 
 	// METHODS
 
@@ -88,7 +93,8 @@ private:
 	void CalculateGravity();
 	void CalculateThrust(float Throttle);
 	void CalculateDrag(FVector LocalVelocity);
-	void CalculateLift(FVector LocalVelocity);
+	void CalculatePitchLift(FVector LocalVelocity);
+	void CalculateYawLift(FVector LocalVelocity);
 
 	// Applies current Force to displace object
 	void ApplyTotalForce(float DeltaTime);
@@ -97,5 +103,8 @@ private:
 	void ApplyTotalRotation(float DeltaTime);
 
 	FVector GetLocalVector(FVector WorldVector);
+	FVector GetGlobalVector(FVector LocalVector);
 	FVector GetCDragVector(FVector NormVelocity);
+
+	void DrawDebugForce(FVector ForceVector, FColor Color);
 };

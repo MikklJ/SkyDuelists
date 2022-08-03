@@ -21,12 +21,17 @@ void AFighter::BeginPlay()
 // Called every frame
 void AFighter::Tick(float DeltaTime)
 {
-	// Calculate forces for total linear force on plane
-	CalculateAoA(Velocity);
+	// Get Local Velocity
+	FVector LocalVelocity = GetLocalVector(Velocity);
+
+	// Calculate local forces for total linear force on plane
+	CalculateAoA(LocalVelocity);
 	CalculateGravity();
-	CalculateDrag(Velocity);
-	CalculateLift(Velocity);
-	TotalForce = Thrust + Drag + Gravity + Lift;
+	CalculateDrag(LocalVelocity);
+	CalculatePitchLift(LocalVelocity);
+	CalculateYawLift(LocalVelocity);
+
+	TotalForce = Thrust + Drag + Gravity + PitchLift + YawLift;
 
 	// Apply total force
 	ApplyTotalForce(DeltaTime);
@@ -38,9 +43,19 @@ void AFighter::Tick(float DeltaTime)
 		"Gravity " + Gravity.ToString() + "\n"
 		+ "Thrust " + Thrust.ToString() + "\n"
 		+ "Drag " + Drag.ToString() + "\n"
-		+ "Lift " + Lift.ToString() + "\n"
+		+ "Pitch Lift" + PitchLift.ToString() + "\n"
+		+ "Yaw Lift" + YawLift.ToString() + "\n"
 		+ "Acceleration " + Acceleration.ToString() + "\n"
-		+ "Velocity " + Velocity.ToString());
+		+ "Velocity " + Velocity.ToString() + "\n");
+
+	
+	DrawDebugForce(GetGlobalVector(Gravity), FColor(0, 255, 0));
+	DrawDebugForce(GetGlobalVector(Drag), FColor(255, 0, 0));
+	DrawDebugForce(GetGlobalVector(PitchLift), FColor(0, 0, 255));
+	DrawDebugForce(GetGlobalVector(YawLift), FColor(255, 165, 0));
+	DrawDebugForce(GetGlobalVector(Thrust), FColor(255, 255, 0));
+
+	//DrawDebugForce(GetGlobalVector(TotalForce), FColor(255, 255, 0));
 }
 // Called to bind functionality to input
 void AFighter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -61,7 +76,7 @@ void AFighter::CalculateAoA(FVector LocalVelocity) {
 	AoAYaw = atan2(LocalVelocity.Y, LocalVelocity.X);
 }
 
-// Calculate Local Gravity force
+// Calculate Gravity force
 void AFighter::CalculateGravity() {
 	FVector WorldGravity = 9.8 * FVector(0, 0, -1) * Mass;
 	Gravity = GetLocalVector(WorldGravity);
@@ -72,7 +87,7 @@ void AFighter::CalculateThrust(float Throttle) {
 	Thrust = Throttle * MaxThrust * FVector(1, 0, 0);
 }
 
-// Calculate Local Drag Force
+// Calculate Drag Force
 void AFighter::CalculateDrag(FVector LocalVelocity) {
 	float VelocitySquared = LocalVelocity.Size() * LocalVelocity.Size();
 
@@ -81,19 +96,34 @@ void AFighter::CalculateDrag(FVector LocalVelocity) {
 	Drag = CoDVector.Size() * VelocitySquared * -LocalVelocity.GetSafeNormal();
 }
 
-void AFighter::CalculateLift(FVector LocalVelocity) {
-	FVector LiftVelocity = FVector(LocalVelocity.X, LocalVelocity.Y, 0);
+void AFighter::CalculatePitchLift(FVector LocalVelocity) {
+	FVector LiftVelocity = FVector(LocalVelocity.X, 0, LocalVelocity.Z);
 	float LVelocitySquared = LiftVelocity.Size() * LiftVelocity.Size();
 
 	// Calculate main Pitch Lift force
 	float CoLPitch = CoefficientOfLiftCurve->GetFloatValue(AoAPitch);
-	FVector LiftForce = LVelocitySquared * CoLPitch * LiftScale * FVector(0, 0, 1);
+	FVector LiftForce = LVelocitySquared * CoLPitch * LiftScalePitch * FVector(0, 0, 1);
 
-	float IDragCoefficient = CoLPitch * CoLPitch * IDragStrength;
+	float IDragCoefficient = CoLPitch * CoLPitch * IDragPitchStrength;
 	FVector IDragForce = (-LiftVelocity.GetSafeNormal()) * LVelocitySquared * IDragCoefficient;
 
-	Lift = LiftForce + IDragForce;
+	PitchLift = LiftForce + IDragForce;
 }
+
+void AFighter::CalculateYawLift(FVector LocalVelocity) {
+	FVector LiftVelocity = FVector(LocalVelocity.X, LocalVelocity.Y, 0);
+	float LVelocitySquared = LiftVelocity.Size() * LiftVelocity.Size();
+
+	// Calculate main Pitch Lift force
+	float CoLYaw = CoefficientOfLiftCurve->GetFloatValue(AoAYaw);
+	FVector LiftForce = LVelocitySquared * CoLYaw * LiftScaleYaw * FVector(0, -1, 0);
+
+	float IDragCoefficient = CoLYaw * CoLYaw * IDragYawStrength;
+	FVector IDragForce = (-LiftVelocity.GetSafeNormal()) * LVelocitySquared * IDragCoefficient;
+
+	YawLift = LiftForce + IDragForce;
+}
+
 
 // Calculate coefficient vector based on velocity
 FVector AFighter::GetCDragVector(FVector NormVelocity) {
@@ -108,6 +138,12 @@ FVector AFighter::GetCDragVector(FVector NormVelocity) {
 		NormVelocity.Z * CoefficentOfDragDown;
 
 	return NormVelocity;
+}
+
+void AFighter::DrawDebugForce(FVector ForceVector, FColor Color)
+{
+	DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + ForceVector, Color,
+		false, 1, 1, 10);
 }
 
 void AFighter::ProcessThrottle(float InputThrottle)
@@ -139,14 +175,14 @@ void AFighter::ProcessRoll(float InputRoll)
 void AFighter::ApplyTotalForce(float DeltaTime)
 {
 	// Delta Acceleration in m/s^2
-	Acceleration = TotalForce / Mass;
+	Acceleration = GetGlobalVector(TotalForce) / Mass;
 
 	// Delta Velocity in m/s
 	Velocity = Velocity + Acceleration * DeltaTime;
 
 	// Calculate displacement in meters, apply to actor
 	FVector LocalDisplacement = Velocity * DeltaTime;
-	AddActorLocalOffset(LocalDisplacement * 100);
+	AddActorWorldOffset(LocalDisplacement * 100);
 }
 
 void AFighter::ApplyTotalRotation(float DeltaTime) 
@@ -162,6 +198,12 @@ void AFighter::ApplyTotalRotation(float DeltaTime)
 // Converts vectors in global frame to local frame
 FVector AFighter::GetLocalVector(FVector WorldVector)
 {
-	FQuat InverseRotation = GetActorRotation().GetInverse().Quaternion();
-	return InverseRotation * WorldVector;
+	FQuat InverseRotationQuat = GetActorRotation().GetInverse().Quaternion();
+	return InverseRotationQuat * WorldVector;
+}
+
+FVector AFighter::GetGlobalVector(FVector LocalVector)
+{
+	FQuat RotationQuat = GetActorRotation().Quaternion();
+	return RotationQuat * LocalVector;
 }
