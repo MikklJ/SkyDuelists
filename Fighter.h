@@ -1,10 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
+// MikklJ 2022
 
 #pragma once
 
 #include "Math/Rotator.h"
 #include "Math/Quat.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "DrawDebugHelpers.h"
 
 #include "CoreMinimal.h"
@@ -31,8 +31,13 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	// Curve for coefficient of lift
 	UPROPERTY(EditDefaultsOnly, Category = Curve)
 		UCurveFloat* CoefficientOfLiftCurve;
+
+	// Debug flag
+	UPROPERTY(EditANywhere)
+		bool Debug = true;
 
 	// Input process functions
 	void ProcessThrottle(float InputThrottle);
@@ -48,8 +53,8 @@ private:
 	FVector Thrust = FVector::ZeroVector;		// Thrust, forward of nose
 	FVector Drag = FVector::ZeroVector;			// Drag, acts against velocity
 	FVector Gravity = FVector::ZeroVector;		// Gravity, pulls down world -z
-	FVector PitchLift = FVector::ZeroVector;	// Lift, acts perpendicular to planar velocity
-	FVector YawLift = FVector::ZeroVector;
+	FVector PitchLift = FVector::ZeroVector;	// Lift, acts in +-z acis
+	FVector YawLift = FVector::ZeroVector;		// Lift, acts in +-y axis
 
 	// Dynamic mechanics, in SI, global
 	FVector Velocity = FVector::ZeroVector;		// Velocity in m / s, global
@@ -63,7 +68,7 @@ private:
 	float CurrentYawSpeed;						// Current yaw rate of plane
 
 
-	// STATIC ATTRIBUTES
+	// STATIC ATTRIBUTES, tune for different aircraft
 
 	// Rotational Attributes (response rating)
 	float PitchRateMultiplier = 150.0f;
@@ -71,24 +76,24 @@ private:
 	float YawRateMultiplier = 30.0f;
 
 	float Mass = 5500.0f;						// Mass, in kg
-	float MaxThrust = 45000.0f;					// Maximum thrust in Newtons
-	float LiftScalePitch = 150.0f;				// Coefficient lift strength
-	float LiftScaleYaw = 60.0f;
-	float IDragPitchStrength = 0.2f;
-	float IDragYawStrength = 0.2f;
+	float MaxThrust = 35000.0f;					// Maximum thrust in Newtons (can get from T/W * gravity)
+	float LiftScalePitch = 150.0f;				// Coefficient lift strength (governs lift power of wings)
+	float LiftScaleYaw = 60.0f;					// Coefficient of yaw lift strength (yaw power of rudder)
+	float IDragPitchStrength = 0.2f;			// Coefficient of induced drag from pitch lift
+	float IDragYawStrength = 0.2f;				// Coefficient of induced drag from yaw lift
 
 	// Coefficients of Drag, 6-scaled
 	float CoefficentOfDragForward = 1.1f;
 	float CoefficentOfDragBackward = 1.1f;
-	float CoefficentOfDragLeft = 8.7f;
-	float CoefficentOfDragRight = 8.7f;
-	float CoefficentOfDragUp = 15.6f;
-	float CoefficentOfDragDown = 15.6f;
+	float CoefficentOfDragLeft = 3.7f;
+	float CoefficentOfDragRight = 3.7f;
+	float CoefficentOfDragUp = 7.6f;
+	float CoefficentOfDragDown = 7.6f;
 
 
 	// METHODS
 
-	// Calculation
+	// Calculation of AOA and forces
 	void CalculateAoA(FVector LocalVelocity);
 	void CalculateGravity();
 	void CalculateThrust(float Throttle);
@@ -102,9 +107,12 @@ private:
 	// Applies current rotation rates
 	void ApplyTotalRotation(float DeltaTime);
 
+	// Vector calculation methods
 	FVector GetLocalVector(FVector WorldVector);
 	FVector GetGlobalVector(FVector LocalVector);
 	FVector GetCDragVector(FVector NormVelocity);
 
+	// Debug
+	void DisplayDebugInfo();
 	void DrawDebugForce(FVector ForceVector, FColor Color);
 };
