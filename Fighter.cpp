@@ -9,6 +9,13 @@ AFighter::AFighter()
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	FighterMesh = CreateDefaultSubobject<USkeletalMeshComponent>("Fighter Mesh");
+
+	CameraArm = CreateDefaultSubobject<USpringArmComponent>("Camera Arm");
+	CameraArm->SetupAttachment(FighterMesh);
+
+	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
+	Camera->SetupAttachment(CameraArm);
 }
 
 // Called when the game starts or when spawned
@@ -38,7 +45,12 @@ void AFighter::Tick(float DeltaTime)
 	ApplyTotalForce(DeltaTime);
 
 	// Apply rotation from controller input
-	ApplyTotalRotation(DeltaTime);
+	if (Freecam) {
+		ApplyCameraRotation(DeltaTime);
+	}
+	else {
+		ApplyTotalRotation(DeltaTime);
+	}
 
 	if (Debug) {
 		DisplayDebugInfo();
@@ -49,6 +61,9 @@ void AFighter::Tick(float DeltaTime)
 void AFighter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	PlayerInputComponent->BindAction("Freecam", IE_Pressed, this, &AFighter::OnBeginFreecam);
+	PlayerInputComponent->BindAction("Freecam", IE_Released, this, &AFighter::OnEndFreecam);
 
 	PlayerInputComponent->BindAxis("Throttle", this, &AFighter::ProcessThrottle);
 	PlayerInputComponent->BindAxis("Pitch", this, &AFighter::ProcessPitch);
@@ -136,6 +151,20 @@ FVector AFighter::GetCDragVector(FVector NormVelocity) {
 	return NormVelocity;
 }
 
+void AFighter::OnBeginFreecam()
+{
+	Freecam = true;
+	
+}
+
+void AFighter::OnEndFreecam()
+{
+	Freecam = false;
+	if (CameraArm) {
+		CameraArm->SetRelativeRotation(FRotator(0, 0, 0));
+	}
+}
+
 // Generate thrust force given input throttle scale
 void AFighter::ProcessThrottle(float InputThrottle)
 {
@@ -189,6 +218,17 @@ void AFighter::ApplyTotalRotation(float DeltaTime)
 	PlaneRotation.Yaw = CurrentYawSpeed * DeltaTime;
 
 	AddActorLocalRotation(PlaneRotation);
+}
+
+void AFighter::ApplyCameraRotation(float DeltaTime)
+{
+	FRotator CameraRotation = FRotator(0, 0, 0);
+	CameraRotation.Pitch = CurrentPitchSpeed * DeltaTime;
+	CameraRotation.Yaw = CurrentRollSpeed * DeltaTime;
+
+	if (CameraArm) {
+		CameraArm->AddLocalRotation(CameraRotation);
+	}
 }
 
 // Converts vectors in global frame to local frame

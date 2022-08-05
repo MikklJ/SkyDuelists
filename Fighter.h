@@ -8,6 +8,8 @@
 #include "DrawDebugHelpers.h"
 
 #include "CoreMinimal.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Camera/CameraComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Fighter.generated.h"
 
@@ -35,11 +37,23 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Curve)
 		UCurveFloat* CoefficientOfLiftCurve;
 
+
+	UPROPERTY(VisibleAnywhere)
+		USkeletalMeshComponent* FighterMesh;
+
+	UPROPERTY(VisibleAnywhere)
+		USpringArmComponent* CameraArm;
+
+	UPROPERTY(VisibleAnywhere)
+		UCameraComponent* Camera;
+
 	// Debug flag
-	UPROPERTY(EditANywhere)
+	UPROPERTY(EditAnywhere)
 		bool Debug = true;
 
 	// Input process functions
+	void OnBeginFreecam();
+	void OnEndFreecam();
 	void ProcessThrottle(float InputThrottle);
 	void ProcessPitch(float InputPitch);
 	void ProcessYaw(float InputYaw);
@@ -67,6 +81,7 @@ private:
 	float CurrentRollSpeed;						// Current roll rate of plane
 	float CurrentYawSpeed;						// Current yaw rate of plane
 
+	bool Freecam = false;						// If true, use pitch/roll axes for camera movement
 
 	// STATIC ATTRIBUTES, tune for different aircraft
 
@@ -106,6 +121,7 @@ private:
 
 	// Applies current rotation rates
 	void ApplyTotalRotation(float DeltaTime);
+	void ApplyCameraRotation(float DeltaTime);
 
 	// Vector calculation methods
 	FVector GetLocalVector(FVector WorldVector);
