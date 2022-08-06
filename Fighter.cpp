@@ -45,9 +45,7 @@ void AFighter::Tick(float DeltaTime)
 	ApplyTotalForce(DeltaTime);
 
 	// Apply rotation from controller input
-	if (!Freecam || !LockRotationInFreecam) {
-		ApplyTotalRotation(DeltaTime);
-	}
+	ApplyTotalRotation(DeltaTime);
 
 	if (Debug) {
 		DisplayDebugInfo();
@@ -160,9 +158,7 @@ void AFighter::OnBeginFreecam()
 void AFighter::OnEndFreecam()
 {
 	Freecam = false;
-	if (CameraArm) {
-		CameraArm->SetRelativeRotation(FRotator(0, 0, 0));
-	}
+	CameraArm->SetRelativeRotation(FRotator(0, 0, 0));
 }
 
 // Generate thrust force given input throttle scale
@@ -174,25 +170,31 @@ void AFighter::ProcessThrottle(float InputThrottle)
 // Generates pitch rotation
 void AFighter::ProcessPitch(float InputPitch)
 {
-	const float TargetPitchSpeed = InputPitch * PitchRateMultiplier;
-	CurrentPitchSpeed = FMath::FInterpTo(CurrentPitchSpeed, TargetPitchSpeed,
-		GetWorld()->GetDeltaSeconds(), 1.0f);
+	if (!Freecam || !LockRotationInFreecam) {
+		const float TargetPitchSpeed = InputPitch * PitchRateMultiplier;
+		CurrentPitchSpeed = FMath::FInterpTo(CurrentPitchSpeed, TargetPitchSpeed,
+			GetWorld()->GetDeltaSeconds(), 1.0f);
+	}
 }
 
 // Generates yaw rotation
 void AFighter::ProcessYaw(float InputYaw)
 {
-	const float TargetYawSpeed = InputYaw * YawRateMultiplier;
-	CurrentYawSpeed = FMath::FInterpTo(CurrentYawSpeed, TargetYawSpeed,
-		GetWorld()->GetDeltaSeconds(), 1.0f);
+	if (!Freecam || !LockRotationInFreecam) {
+		const float TargetYawSpeed = InputYaw * YawRateMultiplier;
+		CurrentYawSpeed = FMath::FInterpTo(CurrentYawSpeed, TargetYawSpeed,
+			GetWorld()->GetDeltaSeconds(), 1.0f);
+	}
 }
 
 // Generates x-axis roll
 void AFighter::ProcessRoll(float InputRoll)
 {
-	const float TargetRollSpeed = InputRoll * RollRateMultiplier;
-	CurrentRollSpeed = FMath::FInterpTo(CurrentRollSpeed, TargetRollSpeed,
-		GetWorld()->GetDeltaSeconds(), 1.0f);
+	if (!Freecam || !LockRotationInFreecam) {
+		const float TargetRollSpeed = InputRoll * RollRateMultiplier;
+		CurrentRollSpeed = FMath::FInterpTo(CurrentRollSpeed, TargetRollSpeed,
+			GetWorld()->GetDeltaSeconds(), 1.0f);
+	}
 }
 
 void AFighter::ProcessFreecamPitch(float InputFreecamPitch)
