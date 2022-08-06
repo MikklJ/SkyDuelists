@@ -59,6 +59,9 @@ public:
 	void ProcessYaw(float InputYaw);
 	void ProcessRoll(float InputRoll);
 
+	void ProcessFreecamPitch(float InputFreecamPitch);
+	void ProcessFreecamYaw(float InputFreecamYaw);
+
 private:
 	// DYNAMIC ATTRIBUTES
 
@@ -105,6 +108,8 @@ private:
 	float CoefficentOfDragUp = 7.6f;
 	float CoefficentOfDragDown = 7.6f;
 
+	float CameraSpeed = 2.0f;
+	bool LockRotationInFreecam = true;
 
 	// METHODS
 
@@ -121,7 +126,6 @@ private:
 
 	// Applies current rotation rates
 	void ApplyTotalRotation(float DeltaTime);
-	void ApplyCameraRotation(float DeltaTime);
 
 	// Vector calculation methods
 	FVector GetLocalVector(FVector WorldVector);

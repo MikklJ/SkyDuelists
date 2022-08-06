@@ -45,10 +45,7 @@ void AFighter::Tick(float DeltaTime)
 	ApplyTotalForce(DeltaTime);
 
 	// Apply rotation from controller input
-	if (Freecam) {
-		ApplyCameraRotation(DeltaTime);
-	}
-	else {
+	if (!Freecam || !LockRotationInFreecam) {
 		ApplyTotalRotation(DeltaTime);
 	}
 
@@ -69,6 +66,9 @@ void AFighter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("Pitch", this, &AFighter::ProcessPitch);
 	PlayerInputComponent->BindAxis("Roll", this, &AFighter::ProcessRoll);
 	PlayerInputComponent->BindAxis("Yaw", this, &AFighter::ProcessYaw);
+
+	PlayerInputComponent->BindAxis("FreecamPitch", this, &AFighter::ProcessFreecamPitch);
+	PlayerInputComponent->BindAxis("FreecamYaw", this, &AFighter::ProcessFreecamYaw);
 
 }
 
@@ -195,6 +195,22 @@ void AFighter::ProcessRoll(float InputRoll)
 		GetWorld()->GetDeltaSeconds(), 1.0f);
 }
 
+void AFighter::ProcessFreecamPitch(float InputFreecamPitch)
+{
+	if (Freecam) {
+		FRotator CameraRotation = FRotator(InputFreecamPitch * CameraSpeed, 0, 0);
+		CameraArm->AddRelativeRotation(CameraRotation);
+	}
+}
+
+void AFighter::ProcessFreecamYaw(float InputFreecamYaw)
+{
+	if (Freecam) {
+		FRotator CameraRotation = FRotator(0, InputFreecamYaw * CameraSpeed, 0);
+		CameraArm->AddRelativeRotation(CameraRotation);
+	}
+}
+
 // Applies calculated forces onto plane mechanics
 void AFighter::ApplyTotalForce(float DeltaTime)
 {
@@ -218,17 +234,6 @@ void AFighter::ApplyTotalRotation(float DeltaTime)
 	PlaneRotation.Yaw = CurrentYawSpeed * DeltaTime;
 
 	AddActorLocalRotation(PlaneRotation);
-}
-
-void AFighter::ApplyCameraRotation(float DeltaTime)
-{
-	FRotator CameraRotation = FRotator(0, 0, 0);
-	CameraRotation.Pitch = CurrentPitchSpeed * DeltaTime;
-	CameraRotation.Yaw = CurrentRollSpeed * DeltaTime;
-
-	if (CameraArm) {
-		CameraArm->AddLocalRotation(CameraRotation);
-	}
 }
 
 // Converts vectors in global frame to local frame
